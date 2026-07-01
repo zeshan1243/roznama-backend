@@ -1,0 +1,43 @@
+{
+  "source": "Government of Pakistan official emergency numbers",
+  "groups": [
+    {
+      "key": "national",
+      "label_en": "National emergency lines",
+      "label_ur": "قومی ہنگامی نمبرز",
+      "items": [
+        { "name_en": "Police",                  "name_ur": "پولیس",           "number": "15",       "icon": "police" },
+        { "name_en": "Rescue 1122",             "name_ur": "ریسکیو 1122",      "number": "1122",     "icon": "rescue" },
+        { "name_en": "Fire brigade",            "name_ur": "فائر بریگیڈ",      "number": "16",       "icon": "fire" },
+        { "name_en": "Ambulance (Edhi)",        "name_ur": "ایمبولینس (ایدھی)", "number": "115",     "icon": "ambulance" },
+        { "name_en": "Bomb disposal",           "name_ur": "بم ڈسپوزل",        "number": "1717",     "icon": "warning" },
+        { "name_en": "Civil defense",           "name_ur": "سول ڈیفنس",        "number": "115",      "icon": "shield" },
+        { "name_en": "Motorway police",         "name_ur": "موٹروے پولیس",     "number": "130",      "icon": "highway" }
+      ]
+    },
+    {
+      "key": "support",
+      "label_en": "Help & support lines",
+      "label_ur": "ہیلپ لائنز",
+      "items": [
+        { "name_en": "Women helpline (Punjab)", "name_ur": "خواتین ہیلپ لائن", "number": "1043",     "icon": "support" },
+        { "name_en": "Children helpline",       "name_ur": "بچوں کی ہیلپ لائن", "number": "1121",   "icon": "child" },
+        { "name_en": "Anti-narcotics",          "name_ur": "اینٹی نارکوٹکس",   "number": "0800-12345", "icon": "warning" },
+        { "name_en": "Citizen portal (PCP)",    "name_ur": "شہری پورٹل",      "number": "1786",     "icon": "support" }
+      ]
+    },
+    {
+      "key": "utility",
+      "label_en": "Utility complaints",
+      "label_ur": "یوٹیلیٹی شکایات",
+      "items": [
+        { "name_en": "K-Electric",              "name_ur": "کے الیکٹرک",      "number": "118",      "icon": "bolt" },
+        { "name_en": "LESCO (Lahore)",          "name_ur": "لیسکو",          "number": "118",      "icon": "bolt" },
+        { "name_en": "IESCO (Islamabad)",       "name_ur": "آئیسکو",         "number": "118",      "icon": "bolt" },
+        { "name_en": "SNGPL (gas, north)",      "name_ur": "ایس این جی پی ایل","number": "1199",   "icon": "gas" },
+        { "name_en": "SSGC (gas, south)",       "name_ur": "ایس ایس جی سی",   "number": "1199",     "icon": "gas" },
+        { "name_en": "WASA",                    "name_ur": "واسا",            "number": "1334",     "icon": "water" }
+      ]
+    }
+  ]
+}

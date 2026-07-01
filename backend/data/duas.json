@@ -1,0 +1,97 @@
+{
+  "source": "Common authentic supplications. Arabic public domain; English/Urdu translations widely shared.",
+  "categories": [
+    {
+      "key": "morning",
+      "title_en": "Morning",
+      "title_ur": "صبح",
+      "entries": [
+        {
+          "ar": "اللَّهُمَّ بِكَ أَصْبَحْنَا وَبِكَ أَمْسَيْنَا، وَبِكَ نَحْيَا وَبِكَ نَمُوتُ وَإِلَيْكَ النُّشُورُ",
+          "en": "O Allah, by You we enter the morning and by You we enter the evening; by You we live and by You we die, and to You is the resurrection.",
+          "ur": "اے اللہ، تیرے ہی سہارے ہم نے صبح کی اور تیرے ہی سہارے شام کرتے ہیں، تیرے ہی سہارے جیتے اور مرتے ہیں، اور تیری ہی طرف لوٹنا ہے۔"
+        },
+        {
+          "ar": "أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ",
+          "en": "We have entered a new morning and with it all sovereignty belongs to Allah; all praise is for Allah.",
+          "ur": "ہم نے صبح کی اور بادشاہی اللہ کی ہے، اور تمام تعریفیں اللہ ہی کے لیے ہیں۔"
+        }
+      ]
+    },
+    {
+      "key": "evening",
+      "title_en": "Evening",
+      "title_ur": "شام",
+      "entries": [
+        {
+          "ar": "أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ",
+          "en": "We have entered the evening and with it all sovereignty belongs to Allah.",
+          "ur": "ہم نے شام کی اور بادشاہی اللہ کی ہے۔"
+        },
+        {
+          "ar": "اللَّهُمَّ مَا أَصْبَحَ بِي مِنْ نِعْمَةٍ أَوْ بِأَحَدٍ مِنْ خَلْقِكَ، فَمِنْكَ وَحْدَكَ، لَا شَرِيكَ لَكَ",
+          "en": "O Allah, whatever blessing has reached me or any of Your creation this morning is from You alone; You have no partner.",
+          "ur": "اے اللہ، آج صبح جو بھی نعمت مجھے یا تیری مخلوق میں سے کسی کو پہنچی، وہ صرف تجھ سے ہے، تیرا کوئی شریک نہیں۔"
+        }
+      ]
+    },
+    {
+      "key": "meals",
+      "title_en": "Meals",
+      "title_ur": "کھانے کے اوقات",
+      "entries": [
+        {
+          "ar": "بِسْمِ اللَّهِ",
+          "en": "In the name of Allah. (Said before eating.)",
+          "ur": "اللہ کے نام سے۔ (کھانا شروع کرنے سے پہلے۔)"
+        },
+        {
+          "ar": "الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنِي هَذَا وَرَزَقَنِيهِ مِنْ غَيْرِ حَوْلٍ مِنِّي وَلَا قُوَّةٍ",
+          "en": "All praise is for Allah who fed me this and provided it to me without any might or power on my part. (After eating.)",
+          "ur": "تمام تعریفیں اس اللہ کے لیے ہیں جس نے مجھے یہ کھلایا اور بغیر میری طاقت اور قوت کے رزق دیا۔ (کھانے کے بعد۔)"
+        }
+      ]
+    },
+    {
+      "key": "travel",
+      "title_en": "Travel",
+      "title_ur": "سفر",
+      "entries": [
+        {
+          "ar": "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ، وَإِنَّا إِلَى رَبِّنَا لَمُنقَلِبُونَ",
+          "en": "Glory to Him who has subjected this to us; we could not have done so on our own. To our Lord we shall surely return.",
+          "ur": "پاک ہے وہ جس نے اسے ہمارے قابو میں کیا، ورنہ ہم اس کے قابل نہ تھے، اور بے شک ہم اپنے رب کی طرف لوٹنے والے ہیں۔"
+        }
+      ]
+    },
+    {
+      "key": "sleep",
+      "title_en": "Before sleep",
+      "title_ur": "سونے سے پہلے",
+      "entries": [
+        {
+          "ar": "بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا",
+          "en": "In Your name, O Allah, I die and I live.",
+          "ur": "اے اللہ، تیرے ہی نام سے میں مرتا اور جیتا ہوں۔"
+        }
+      ]
+    },
+    {
+      "key": "anxiety",
+      "title_en": "When anxious",
+      "title_ur": "پریشانی میں",
+      "entries": [
+        {
+          "ar": "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ",
+          "en": "Sufficient for us is Allah, and He is the best Disposer of affairs.",
+          "ur": "ہمارے لیے اللہ کافی ہے، اور وہ بہترین کارساز ہے۔"
+        },
+        {
+          "ar": "لَا إِلَهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ",
+          "en": "There is no deity but You, glory to You; indeed I have been of the wrongdoers.",
+          "ur": "تیرے سوا کوئی معبود نہیں، تو پاک ہے، بے شک میں ظالموں میں سے تھا۔"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "source": "Indicative retail tariffs as of May 2026. Operators update without notice; always verify on the official app.",
+  "updated_at": "2026-05-10",
+  "operators": [
+    {
+      "name": "Jazz",
+      "color": "#E5141B",
+      "packages": [
+        { "label": "Daily Hybrid", "validity": "1 day", "calls_min": 250, "sms": 250, "data_mb": 250, "price": 23 },
+        { "label": "Weekly Mega",  "validity": "7 days", "calls_min": 800, "sms": 1000, "data_mb": 2000, "price": 195 },
+        { "label": "Monthly Mega", "validity": "30 days", "calls_min": 3000, "sms": 3000, "data_mb": 6000, "price": 949 }
+      ]
+    },
+    {
+      "name": "Zong",
+      "color": "#27A737",
+      "packages": [
+        { "label": "Daily Unlimited", "validity": "1 day", "calls_min": 100, "sms": 300, "data_mb": 100, "price": 22 },
+        { "label": "Weekly All-in-1", "validity": "7 days", "calls_min": 1500, "sms": 1500, "data_mb": 2000, "price": 220 },
+        { "label": "Monthly Power Pack", "validity": "30 days", "calls_min": 3000, "sms": 1500, "data_mb": 12000, "price": 999 }
+      ]
+    },
+    {
+      "name": "Telenor",
+      "color": "#00B0E1",
+      "packages": [
+        { "label": "Daily Onnet",    "validity": "1 day", "calls_min": 75, "sms": 100, "data_mb": 100, "price": 18 },
+        { "label": "Weekly Easycard","validity": "7 days", "calls_min": 250, "sms": 1500, "data_mb": 1500, "price": 175 },
+        { "label": "Monthly Easycard","validity": "30 days", "calls_min": 1200, "sms": 3000, "data_mb": 8000, "price": 899 }
+      ]
+    },
+    {
+      "name": "Ufone",
+      "color": "#FBB003",
+      "packages": [
+        { "label": "Super Card Lite",  "validity": "7 days", "calls_min": 250, "sms": 1500, "data_mb": 1500, "price": 175 },
+        { "label": "Super Card 30",    "validity": "30 days", "calls_min": 1000, "sms": 3000, "data_mb": 3500, "price": 600 },
+        { "label": "Super Card Plus",  "validity": "30 days", "calls_min": 2000, "sms": 4000, "data_mb": 10000, "price": 1099 }
+      ]
+    }
+  ]
+}

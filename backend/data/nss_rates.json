@@ -1,0 +1,66 @@
+{
+  "source": "Government of Pakistan — Central Directorate of National Savings (CDNS). Rates revised quarterly; check savings.gov.pk for the live notification.",
+  "updated_at": "2026-05-16",
+  "products": [
+    {
+      "code": "DSC",
+      "name_en": "Defence Savings Certificate",
+      "name_ur": "ڈیفنس سیونگز سرٹیفکیٹ",
+      "tenor": "10 years",
+      "profit_pct": 10.44,
+      "payout": "On maturity",
+      "min_invest": 500,
+      "notes_en": "Profit reinvested annually. Final profit on maturity."
+    },
+    {
+      "code": "SSC",
+      "name_en": "Special Savings Certificate",
+      "name_ur": "اسپیشل سیونگز سرٹیفکیٹ",
+      "tenor": "3 years",
+      "profit_pct": 9.40,
+      "payout": "Every 6 months",
+      "min_invest": 500,
+      "notes_en": "First 5 profits at 9.40%, 6th and final at 10.40%. Penalty on early encashment."
+    },
+    {
+      "code": "RIC",
+      "name_en": "Regular Income Certificate",
+      "name_ur": "ریگولر انکم سرٹیفکیٹ",
+      "tenor": "5 years",
+      "profit_pct": 9.96,
+      "payout": "Monthly",
+      "min_invest": 50000,
+      "notes_en": "Monthly profit payment from purchase month."
+    },
+    {
+      "code": "BSC",
+      "name_en": "Behbood / Pensioner Benefit Account",
+      "name_ur": "بہبود / پنشنرز بینیفٹ اکاؤنٹ",
+      "tenor": "10 years",
+      "profit_pct": 12.00,
+      "payout": "Monthly",
+      "min_invest": 500,
+      "notes_en": "For pensioners, widows, and persons with disabilities only."
+    },
+    {
+      "code": "SCA",
+      "name_en": "Shuhada Family Welfare Account",
+      "name_ur": "شہداء فیملی ویلفیئر اکاؤنٹ",
+      "tenor": "10 years",
+      "profit_pct": 12.00,
+      "payout": "Monthly",
+      "min_invest": 500,
+      "notes_en": "For families of martyrs of the armed forces / police."
+    },
+    {
+      "code": "STC",
+      "name_en": "Short Term Savings Certificate",
+      "name_ur": "شارٹ ٹرم سیونگز سرٹیفکیٹ",
+      "tenor": "3 / 6 / 12 months",
+      "profit_pct": 9.64,
+      "payout": "On maturity",
+      "min_invest": 10000,
+      "notes_en": "3M = 9.64%, 6M = 9.58%, 1Y = 9.58%. Lump-sum profit on maturity."
+    }
+  ]
+}
