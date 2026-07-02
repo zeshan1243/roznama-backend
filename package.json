@@ -13,6 +13,7 @@
     "start": "node dist/index.js",
     "seed": "tsx src/scripts/seed.ts",
     "seed:content": "tsx src/scripts/seedContent.ts",
+    "seed:hadith": "tsx src/scripts/seedHadith.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

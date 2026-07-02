@@ -25,7 +25,6 @@ import {
   getPackages,
   getLoadshedding,
 } from '../services/reference.js';
-import { getCollections, getSections, getSection } from '../services/hadithBooks.js';
 
 export const publicRouter = Router();
 
@@ -89,22 +88,8 @@ publicRouter.get('/holidays', (req, res) => {
 publicRouter.get('/duas', (_req, res) => res.json(getDuas()));
 publicRouter.get('/hadith', (_req, res) => res.json(getHadiths()));
 publicRouter.get('/hadith/today', (_req, res) => res.json(hadithOfDay()));
-
-// Hadith collections browser (proxied + cached from Fawaz Ahmed's Hadith API).
-publicRouter.get(
-  '/hadith/collections',
-  asyncHandler(async (_req, res) => res.json(await getCollections())),
-);
-publicRouter.get(
-  '/hadith/sections',
-  asyncHandler(async (req, res) =>
-      res.json(await getSections(String(req.query.edition ?? '')))),
-);
-publicRouter.get(
-  '/hadith/section',
-  asyncHandler(async (req, res) => res.json(
-      await getSection(String(req.query.edition ?? ''), Number(req.query.num ?? 1)))),
-);
+// Full hadith collections live in the DB (imported via `npm run seed:hadith`)
+// and are read by the app directly from Supabase — no proxy route needed.
 publicRouter.get('/quran', (_req, res) => res.json(getAyahs()));
 publicRouter.get('/quran/today', (_req, res) => res.json(ayahOfDay()));
 
