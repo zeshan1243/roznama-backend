@@ -26,6 +26,7 @@ import {
   getLoadshedding,
 } from '../services/reference.js';
 import { getCollections, getSections, getSection } from '../services/hadithBooks.js';
+import { getTafsirEditions, getTafsirAyah } from '../services/tafsir.js';
 
 export const publicRouter = Router();
 
@@ -108,6 +109,19 @@ publicRouter.get(
 );
 publicRouter.get('/quran', (_req, res) => res.json(getAyahs()));
 publicRouter.get('/quran/today', (_req, res) => res.json(ayahOfDay()));
+
+// Tafsir (Quran commentary) — proxied + cached from spa5k's tafsir_api.
+publicRouter.get(
+  '/tafsir/editions',
+  asyncHandler(async (_req, res) => res.json(await getTafsirEditions())),
+);
+publicRouter.get(
+  '/tafsir/ayah',
+  asyncHandler(async (req, res) => res.json(await getTafsirAyah(
+      String(req.query.edition ?? ''),
+      Number(req.query.surah ?? 1),
+      Number(req.query.ayah ?? 1)))),
+);
 
 // ---- Daily-life reference ----
 publicRouter.get('/trains', (_req, res) => res.json(getTrains()));
