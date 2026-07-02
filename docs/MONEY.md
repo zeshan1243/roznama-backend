@@ -40,6 +40,29 @@ release, and third-party sites see one server IP instead of every device.
 **API-based (stable JSON):** crypto, stocks, FX history. No scraping; keyless
 public endpoints, so no API key to manage.
 
+## Staleness resilience (never show a blank screen)
+
+Two layers guarantee the user always sees the last good data with an accurate
+"last updated" time:
+
+1. **Backend — keep last good snapshot.** `ingest.refresh()` only overwrites a
+   stored snapshot when the new value passes the feed's `accept` guard: a
+   non-empty list for currency/crypto/stocks/markets/news/cricket, and
+   `source === 'live'` for petrol/nss (a bundled fallback never downgrades a
+   live snapshot). If the producer throws (source unreachable) or the guard
+   rejects the result, the previous snapshot is left untouched, so `/api/<feed>`
+   keeps serving it with its original `fetchedAt`.
+
+2. **App — last-good cache.** `BackendApi.getJsonCached` persists each
+   successful response on device and returns it when a later fetch fails
+   (backend down / offline). The cached payload carries the backend's
+   `fetchedAt`, so the screen still renders the "last updated N ago" label.
+
+Net effect: a failed scrape (or an unreachable backend) surfaces as *slightly
+older* data, never an empty or error screen. The money screens already render
+`fetchedAt` as a relative "last updated" timestamp (and petrol/NSS show a
+live/bundled source chip).
+
 ## App side
 
 `lib/core/network/backend_api.dart` (`BackendApi.getJson`) is the single entry

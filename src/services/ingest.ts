@@ -23,28 +23,46 @@ interface Feed {
   intervalMs: number;
   producer: () => Promise<unknown>;
   after?: (data: unknown) => Promise<void>;
+  /**
+   * Guard that decides whether a freshly-produced value is good enough to
+   * replace the stored snapshot. When it returns false (e.g. a scrape yielded
+   * an empty list, or fell back to bundled data), we KEEP the last good
+   * snapshot instead of overwriting it — so the app keeps showing the last
+   * successfully-scraped data (with its original "last updated" timestamp).
+   */
+  accept?: (data: unknown) => boolean;
 }
 
 const MIN = 60_000;
+
+const nonEmpty = (key: string) => (d: unknown): boolean =>
+  Array.isArray((d as Record<string, unknown>)?.[key]) &&
+  ((d as Record<string, unknown[]>)[key]).length > 0;
+
+// Only persist a live scrape; if the producer fell back to bundled data, keep
+// the last live snapshot rather than downgrading the stored copy.
+const liveOnly = (d: unknown): boolean =>
+  (d as { source?: string })?.source === 'live';
 
 const FEEDS: Feed[] = [
   {
     key: 'currency',
     intervalMs: 5 * MIN,
     producer: fetchCurrency,
+    accept: nonEmpty('rates'),
     // Accumulate the USD/PKR daily series from each scrape.
     after: async (data) => {
       const usd = (data as CurrencySnapshot).rates.find((r) => r.code === 'USD');
       if (usd) await recordUsdPkr((usd.interbankBuy + usd.interbankSell) / 2);
     },
   },
-  { key: 'crypto', intervalMs: 2 * MIN, producer: fetchCrypto },
-  { key: 'stocks', intervalMs: 6 * 60 * MIN, producer: fetchStocks },
-  { key: 'markets', intervalMs: 5 * MIN, producer: fetchMarkets },
-  { key: 'petrol', intervalMs: 60 * MIN, producer: fetchPetrol },
-  { key: 'nss', intervalMs: 6 * 60 * MIN, producer: fetchNss },
-  { key: 'news', intervalMs: 5 * MIN, producer: fetchNewsAll },
-  { key: 'cricket', intervalMs: 5 * MIN, producer: fetchCricketAll },
+  { key: 'crypto', intervalMs: 2 * MIN, producer: fetchCrypto, accept: nonEmpty('coins') },
+  { key: 'stocks', intervalMs: 6 * 60 * MIN, producer: fetchStocks, accept: nonEmpty('quotes') },
+  { key: 'markets', intervalMs: 5 * MIN, producer: fetchMarkets, accept: nonEmpty('indices') },
+  { key: 'petrol', intervalMs: 60 * MIN, producer: fetchPetrol, accept: liveOnly },
+  { key: 'nss', intervalMs: 6 * 60 * MIN, producer: fetchNss, accept: liveOnly },
+  { key: 'news', intervalMs: 5 * MIN, producer: fetchNewsAll, accept: (d) => Array.isArray(d) && d.length > 0 },
+  { key: 'cricket', intervalMs: 5 * MIN, producer: fetchCricketAll, accept: (d) => Array.isArray(d) && d.length > 0 },
   // Ayah of the day → app_content.ayah_today (idempotent per day; hourly check).
   { key: 'ayah', intervalMs: 60 * MIN, producer: refreshAyahOfDay },
   // Hadith of the day → app_content.hadith_today (idempotent per day).
@@ -60,10 +78,18 @@ const FEEDS: Feed[] = [
 async function refresh(feed: Feed): Promise<void> {
   try {
     const data = await feed.producer();
+    // Don't overwrite a good stored snapshot with an empty / fallback result —
+    // keep serving the last successfully-scraped data instead.
+    if (feed.accept && !feed.accept(data)) {
+      console.warn(`[ingest] ${feed.key} ⏭ produced no usable data — keeping last snapshot`);
+      return;
+    }
     await saveSnapshot(feed.key, data);
     if (feed.after) await feed.after(data);
     console.log(`[ingest] ${feed.key} ✓`);
   } catch (err) {
+    // Producer threw (source unreachable) — the last snapshot is untouched, so
+    // the API keeps serving it.
     console.warn(`[ingest] ${feed.key} ✗`, err instanceof Error ? err.message : err);
   }
 }
