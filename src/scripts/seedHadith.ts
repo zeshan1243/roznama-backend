@@ -13,6 +13,8 @@ const ORDER = [
   'bukhari', 'muslim', 'abudawud', 'tirmidhi', 'nasai', 'ibnmajah',
   'malik', 'nawawi', 'qudsi', 'dehlawi',
 ];
+// Only these languages are imported/kept.
+const ALLOWED_LANGS = new Set(['Arabic', 'English', 'Urdu']);
 
 function bestGrade(grades: any): string | null {
   if (!Array.isArray(grades) || grades.length === 0) return null;
@@ -43,9 +45,20 @@ async function main(): Promise<void> {
   }));
   await chunkUpsert('hadith_books', books, 'key');
 
+  // Drop any previously-imported editions in languages we no longer keep.
+  const { data: existing } = await sb.from('hadith_editions').select('edition,language');
+  for (const e of (existing ?? []) as any[]) {
+    if (ALLOWED_LANGS.has(e.language)) continue;
+    await sb.from('hadiths').delete().eq('edition', e.edition);
+    await sb.from('hadith_sections').delete().eq('edition', e.edition);
+    await sb.from('hadith_editions').delete().eq('edition', e.edition);
+    console.log(`  removed ${e.edition} (${e.language})`);
+  }
+
   for (const k of ORDER) {
     if (!eds[k]) continue;
     for (const ed of eds[k].collection as any[]) {
+      if (!ALLOWED_LANGS.has(ed.language)) continue;
       const edition: string = ed.name;
       const full = (await axios.get(`${CDN}/editions/${edition}.min.json`, {
         timeout: 120_000,
