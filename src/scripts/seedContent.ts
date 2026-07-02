@@ -16,11 +16,12 @@ import { supabaseAdmin } from '../lib/supabase.js';
 const root = join(dirname(fileURLToPath(import.meta.url)), '../../data/content');
 
 // key → bundled JSON file (the app expects these exact shapes).
+// Note: 'quran' is intentionally not seeded here — ayah of the day comes from
+// AlQuran.cloud (app_content.ayah_today), so app_content('quran') is unused.
 const items: Array<[string, string]> = [
   ['hadith', 'hadith.json'],
   ['duas', 'duas.json'],
   ['asma', 'asma_ul_husna.json'],
-  ['quran', 'quran_ayahs.json'],
 ];
 
 async function main(): Promise<void> {
