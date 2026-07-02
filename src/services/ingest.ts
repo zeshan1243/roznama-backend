@@ -15,6 +15,7 @@ import { fetchPetrol } from './petrol.js';
 import { fetchNss } from './nss.js';
 import { recordUsdPkr } from './fxHistory.js';
 import { fetchNewsAll, fetchCricketAll } from './news.js';
+import { refreshAyahOfDay } from './ayah.js';
 
 interface Feed {
   key: string;
@@ -43,6 +44,8 @@ const FEEDS: Feed[] = [
   { key: 'nss', intervalMs: 6 * 60 * MIN, producer: fetchNss },
   { key: 'news', intervalMs: 5 * MIN, producer: fetchNewsAll },
   { key: 'cricket', intervalMs: 5 * MIN, producer: fetchCricketAll },
+  // Ayah of the day → app_content.ayah_today (idempotent per day; hourly check).
+  { key: 'ayah', intervalMs: 60 * MIN, producer: refreshAyahOfDay },
   // Per-city weather
   ...CITIES.map((c) => ({
     key: `weather:${c.id}`,
