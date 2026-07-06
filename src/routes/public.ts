@@ -28,6 +28,7 @@ import {
 import { getCollections, getSections, getSection } from '../services/hadithBooks.js';
 import { getArticleContent } from '../services/newsArticle.js';
 import { getTafsirEditions, getTafsirAyah } from '../services/tafsir.js';
+import { getTrainsLive, getTrainRoute, getTrainRuns } from '../services/trains.js';
 
 export const publicRouter = Router();
 
@@ -133,7 +134,29 @@ publicRouter.get(
       Number(req.query.ayah ?? 1)))),
 );
 
+// ---- Live train tracking (roster + GPS, proxied from traintracking.pk) ----
+// The app never hits traintracking.pk directly — we do the token dance,
+// station-name resolution, and route parsing server-side.
+publicRouter.get('/trains/live', asyncHandler(async (_req, res) => res.json(await getTrainsLive())));
+publicRouter.get(
+  '/trains/route',
+  asyncHandler(async (req, res) => {
+    const trainId = Number(req.query.trainId ?? 0);
+    if (!Number.isFinite(trainId) || trainId <= 0) return res.status(400).json([]);
+    res.json(await getTrainRoute(trainId));
+  }),
+);
+publicRouter.get(
+  '/trains/runs',
+  asyncHandler(async (req, res) => {
+    const trainNumber = Number(req.query.trainNumber ?? 0);
+    if (!Number.isFinite(trainNumber) || trainNumber <= 0) return res.status(400).json([]);
+    res.json(await getTrainRuns(trainNumber));
+  }),
+);
+
 // ---- Daily-life reference ----
+// Legacy bundled schedule (kept for the seed script / older clients).
 publicRouter.get('/trains', (_req, res) => res.json(getTrains()));
 publicRouter.get('/emergency', (_req, res) => res.json(getEmergency()));
 publicRouter.get('/packages', (_req, res) => res.json(getPackages()));
