@@ -8,7 +8,7 @@ import * as cheerio from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 import type { Element } from 'domhandler';
 import NodeCache from 'node-cache';
-import { http, BROWSER_HEADERS } from '../lib/http.js';
+import { fetchText, BROWSER_HEADERS } from '../lib/http.js';
 
 const cache = new NodeCache({ stdTTL: 6 * 3600, checkperiod: 900, useClones: false });
 
@@ -46,12 +46,18 @@ function extract(html: string): string | null {
   const $ = cheerio.load(html);
 
   $(STRIP_TAGS.join(',')).remove();
-  // Strip elements whose class/id loudly says they are chrome.
+  // Strip elements whose class/id loudly says they are chrome. NOISE matches on
+  // substrings, so a content word can trip it (e.g. an article body class like
+  // `social-embeds-responsive` contains "social"). Never strip an element that
+  // holds several paragraphs — real chrome is small; a paragraph-heavy node is
+  // article content that merely happens to mention a noise word.
   $('[class],[id]').each((_, el) => {
     const $el = $(el);
-    if (NOISE.test($el.attr('class') ?? '') || NOISE.test($el.attr('id') ?? '')) {
-      $el.remove();
+    if (!(NOISE.test($el.attr('class') ?? '') || NOISE.test($el.attr('id') ?? ''))) {
+      return;
     }
+    if ($el.find('p').length >= 3) return;
+    $el.remove();
   });
 
   // Preserve the FE's candidate ordering so ties resolve identically.
@@ -84,9 +90,9 @@ export async function getArticleContent(url: string): Promise<{ contentHtml: str
   if (hit) return hit;
   let contentHtml: string | null = null;
   try {
-    const resp = await http.get(url, { headers: BROWSER_HEADERS, timeout: 12_000 });
-    if (resp.status === 200 && typeof resp.data === 'string') {
-      contentHtml = extract(resp.data);
+    const { status, text } = await fetchText(url, { headers: BROWSER_HEADERS, timeout: 12_000 });
+    if (status === 200) {
+      contentHtml = extract(text);
     }
   } catch {
     /* leave null */

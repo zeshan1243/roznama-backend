@@ -1,5 +1,5 @@
 import { XMLParser } from 'fast-xml-parser';
-import { http, USER_AGENT } from '../lib/http.js';
+import { fetchText, USER_AGENT } from '../lib/http.js';
 
 export type NewsCategory =
   | 'all'
@@ -98,13 +98,12 @@ function extractImage(item: any): string | null {
 
 async function fetchFeed(feed: Feed): Promise<NewsArticle[]> {
   try {
-    const resp = await http.get(feed.url, {
+    const { status, text } = await fetchText(feed.url, {
       headers: { 'User-Agent': USER_AGENT, Accept: 'application/rss+xml,application/xml,text/xml,*/*' },
       timeout: 10000,
-      responseType: 'text',
     });
-    if (resp.status !== 200) return [];
-    const doc = parser.parse(resp.data);
+    if (status !== 200) return [];
+    const doc = parser.parse(text);
     const items = toArray(doc?.rss?.channel?.item ?? doc?.feed?.entry);
     return items.map((item: any): NewsArticle => {
       const rawTitle = String(item.title?.['#text'] ?? item.title ?? '');
