@@ -230,7 +230,7 @@ roznama-backend/
 3. Good results are written to `feed_snapshots` via `saveSnapshot(key, data)`.
 4. When the app calls e.g. `GET /api/currency`, the route calls `served('currency', fetchCurrency)`, which reads the stored snapshot from `feed_snapshots`. On a cold start (nothing stored yet), it fetches live once, persists it, and returns it — so the API is never blank.
 
-**Reference & calculation routes (cities, prayer, qibla, hijri, holidays, trains, duas, quran, …):** served directly — either computed on the fly (prayer/hijri/holidays) or read from bundled data / seeded tables.
+**Reference & calculation routes (cities, holidays, trains, duas, quran, …):** served directly — either computed on the fly (holidays) or read from bundled data / seeded tables. Prayer times, qibla bearing, and Hijri date conversion are pure deterministic algorithms computed on-device by the app, so they have no server endpoint.
 
 **Proxied+cached routes (hadith collections, tafsir):** fetched from upstream APIs and cached to keep the DB small. See [docs/HADITH.md](docs/HADITH.md) and [docs/TAFSIR.md](docs/TAFSIR.md).
 
@@ -262,10 +262,7 @@ Base URL: `http://localhost:8080`
 | GET | `/api/weather` | `city` | Per-city weather snapshot |
 | GET | `/api/news` | `category` | Aggregated RSS news, filtered by category |
 | GET | `/api/cricket` | | Cricket news |
-| GET | `/api/prayer` | `city`, `date` | Prayer schedule |
-| GET | `/api/qibla` | `city` | Qibla bearing |
-| GET | `/api/hijri` | `date`, `offset` | Hijri date conversion |
-| GET | `/api/holidays` | `offset` | Upcoming holidays |
+| GET | `/api/holidays` | `offset` | Upcoming holidays (`offset` shifts Hijri-derived dates) |
 | GET | `/api/duas` | | Duas |
 | GET | `/api/hadith` · `/api/hadith/today` | | Bundled hadith + hadith of the day |
 | GET | `/api/hadith/collections` · `/sections` · `/section` | `edition`, `num` | Proxied hadith browser |

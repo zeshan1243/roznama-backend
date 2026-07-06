@@ -11,8 +11,6 @@ import { fetchPetrol } from '../services/petrol.js';
 import { getFxHistory, FxHistoryRange } from '../services/fxHistory.js';
 import { fetchNss } from '../services/nss.js';
 import { fetchNewsAll, fetchCricketAll, filterNews, NewsArticle, NewsCategory } from '../services/news.js';
-import { prayerSchedule, qiblaBearing } from '../services/prayer.js';
-import { toHijri } from '../services/hijri.js';
 import { upcomingHolidays } from '../services/holidays.js';
 import {
   getTrains,
@@ -82,16 +80,13 @@ publicRouter.get(
   asyncHandler(async (_req, res) => res.json(await served<NewsArticle[]>('cricket', fetchCricketAll))),
 );
 
-// ---- Prayer / qibla / hijri / holidays ----
-publicRouter.get('/prayer', (req, res) =>
-  res.json(prayerSchedule(req.query.city as string, req.query.date as string)),
-);
-publicRouter.get('/qibla', (req, res) => res.json(qiblaBearing(req.query.city as string)));
-publicRouter.get('/hijri', (req, res) => {
-  const offset = Number(req.query.offset ?? 0) || 0;
-  const date = req.query.date ? new Date(req.query.date as string) : new Date();
-  res.json(toHijri(date, offset));
-});
+// ---- Holidays ----
+// Prayer times, qibla bearing, and Hijri date conversion are pure deterministic
+// algorithms (adhan_dart / great-circle math / hijri calendar) computed on the
+// device, so there is no server endpoint for them — the backend would only add
+// a network dependency for identical numbers. Holidays live here because the
+// public-holiday list is government-announced data that can change without an
+// app release.
 publicRouter.get('/holidays', (req, res) => {
   const offset = Number(req.query.offset ?? 0) || 0;
   res.json(upcomingHolidays(new Date(), 400, offset));
