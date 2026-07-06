@@ -26,6 +26,7 @@ import {
   getLoadshedding,
 } from '../services/reference.js';
 import { getCollections, getSections, getSection } from '../services/hadithBooks.js';
+import { getArticleContent } from '../services/newsArticle.js';
 import { getTafsirEditions, getTafsirAyah } from '../services/tafsir.js';
 
 export const publicRouter = Router();
@@ -64,6 +65,15 @@ publicRouter.get(
     const category = (req.query.category as NewsCategory) || 'all';
     const articles = await served<NewsArticle[]>('news', fetchNewsAll);
     res.json(filterNews(articles, category));
+  }),
+);
+// Full-article extraction (reader view) — fetched + parsed server-side.
+publicRouter.get(
+  '/news/article',
+  asyncHandler(async (req, res) => {
+    const url = String(req.query.url ?? '');
+    if (!/^https?:\/\//i.test(url)) return res.status(400).json({ contentHtml: null });
+    res.json(await getArticleContent(url));
   }),
 );
 publicRouter.get(
