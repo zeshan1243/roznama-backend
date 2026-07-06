@@ -1,8 +1,7 @@
 import * as cheerio from 'cheerio';
 import { http, USER_AGENT } from '../lib/http.js';
-import { bundled } from '../lib/bundled.js';
 
-export type PetrolSource = 'live' | 'bundled';
+export type PetrolSource = 'live';
 
 export interface FuelPrice {
   key: string;
@@ -12,77 +11,119 @@ export interface FuelPrice {
   previous: number;
 }
 
-export interface PetrolHistoryPoint {
-  month: string;
-  premium: number;
-}
-
 export interface PetrolSnapshot {
   effectiveFrom: string;
-  nextRevision: string;
   fuels: FuelPrice[];
-  history: PetrolHistoryPoint[];
   source: PetrolSource;
   fetchedAt: string;
 }
 
-interface BundledPetrol {
-  effective_from: string;
-  next_revision: string;
-  fuels: Array<{ key: string; label_en: string; label_ur: string; price: number; previous: number }>;
-  history: Array<{ month: string; premium: number }>;
-}
+/**
+ * Fuel presentation metadata (keys + bilingual labels). This is display config,
+ * not price data — prices and the effective date are all scraped live. `match`
+ * tests the fuel-name cell from the source table.
+ */
+const FUELS: Array<{
+  key: string;
+  labelEn: string;
+  labelUr: string;
+  match: (name: string) => boolean;
+}> = [
+  {
+    key: 'premium',
+    labelEn: 'Premium Petrol',
+    labelUr: 'پریمیئم پیٹرول',
+    match: (n) => n.startsWith('petrol'),
+  },
+  {
+    key: 'diesel',
+    labelEn: 'High-Speed Diesel',
+    labelUr: 'ہائی اسپیڈ ڈیزل',
+    match: (n) => n.includes('high speed diesel'),
+  },
+  {
+    key: 'light_diesel',
+    labelEn: 'Light Diesel',
+    labelUr: 'لائٹ ڈیزل',
+    match: (n) => n.includes('light speed diesel') || n.includes('light diesel'),
+  },
+  {
+    key: 'kerosene',
+    labelEn: 'Kerosene',
+    labelUr: 'مٹی کا تیل',
+    match: (n) => n.includes('kerosene'),
+  },
+];
 
-function loadBundled(): PetrolSnapshot {
-  const j = bundled<BundledPetrol>('petrol_prices.json');
-  return {
-    effectiveFrom: j.effective_from,
-    nextRevision: j.next_revision,
-    fuels: j.fuels.map((f) => ({
-      key: f.key,
-      labelEn: f.label_en,
-      labelUr: f.label_ur,
-      price: f.price,
-      previous: f.previous,
-    })),
-    history: j.history,
-    source: 'bundled',
-    fetchedAt: new Date().toISOString(),
-  };
-}
+const MONTHS = [
+  'january', 'february', 'march', 'april', 'may', 'june',
+  'july', 'august', 'september', 'october', 'november', 'december',
+];
 
-function num(text: string, re: RegExp): number | null {
-  const m = re.exec(text);
+/** "PKR 299.5" / "Rs. 297.53/Ltr" -> 297.53 (null if no sensible number). */
+function parsePrice(text: string): number | null {
+  const m = /([\d]+(?:\.\d+)?)/.exec(text.replace(/,/g, ''));
   const n = m ? Number(m[1]) : NaN;
   return Number.isFinite(n) ? n : null;
 }
 
+/** "w.e.f 04-July-2026" -> "2026-07-04" (null if not found / unparseable). */
+function parseEffectiveFrom(bodyText: string): string | null {
+  const m = /w\.e\.f\.?\s*(\d{1,2})[-\s]([A-Za-z]+)[-\s](\d{4})/i.exec(bodyText);
+  if (!m) return null;
+  const day = Number(m[1]);
+  const month = MONTHS.indexOf(m[2].toLowerCase());
+  const year = Number(m[3]);
+  if (month < 0 || !Number.isFinite(day) || !Number.isFinite(year)) return null;
+  return new Date(Date.UTC(year, month, day)).toISOString().slice(0, 10);
+}
+
 export async function fetchPetrol(): Promise<PetrolSnapshot> {
-  const base = loadBundled();
-  try {
-    const resp = await http.get('https://www.pakwheels.com/petroleum-prices-in-pakistan', {
-      headers: { 'User-Agent': USER_AGENT },
-      timeout: 10000,
-    });
-    if (resp.status !== 200) return base;
-    const text = cheerio.load(resp.data)('body').text().replace(/\s+/g, ' ');
-    const premium = num(text, /Petrol[^0-9]{0,80}?(\d{2,3}(?:\.\d{1,2})?)/i);
-    const diesel = num(text, /High[\s-]*Speed[\s-]*Diesel[^0-9]{0,80}?(\d{2,3}(?:\.\d{1,2})?)/i);
-    const kerosene = num(text, /Kerosene[^0-9]{0,80}?(\d{2,3}(?:\.\d{1,2})?)/i);
-    if (premium == null || diesel == null || premium < 100 || diesel < 100) return base;
-    const priceFor = (key: string, fallback: number): number => {
-      if (key === 'premium') return premium;
-      if (key === 'diesel') return diesel;
-      if (key === 'kerosene' && kerosene != null) return kerosene;
-      return fallback;
-    };
-    return {
-      ...base,
-      source: 'live',
-      fetchedAt: new Date().toISOString(),
-      fuels: base.fuels.map((f) => ({ ...f, previous: f.price, price: priceFor(f.key, f.price) })),
-    };
-  } catch {
-    return base;
+  const resp = await http.get('https://www.pakwheels.com/petroleum-prices-in-pakistan', {
+    headers: { 'User-Agent': USER_AGENT },
+    timeout: 10000,
+  });
+  if (resp.status !== 200) throw new Error(`petrol: source returned HTTP ${resp.status}`);
+
+  const $ = cheerio.load(resp.data);
+
+  // Prices: the "Fuel Type | Old Price | New Price | Difference" table. The
+  // desktop and mobile layouts wrap it differently (.pricing-table-cont table
+  // vs table.pricing-table) but share the same td order, so match any table
+  // row — the fuel-name lookup below ignores rows from unrelated tables, and
+  // header rows use <th> (zero <td>) so they're skipped.
+  const fuels: FuelPrice[] = [];
+  $('table tr').each((_, tr) => {
+    const cells = $(tr).find('td');
+    if (cells.length < 3) return;
+    const name = $(cells[0]).text().trim().toLowerCase();
+    const previous = parsePrice($(cells[1]).text());
+    const price = parsePrice($(cells[2]).text());
+    if (previous == null || price == null) return;
+    const meta = FUELS.find((f) => f.match(name));
+    // Skip fuels we don't surface (LPG, CNG, …) and rows with no live price.
+    if (!meta || price <= 0) return;
+    if (fuels.some((f) => f.key === meta.key)) return; // first row wins
+    fuels.push({ key: meta.key, labelEn: meta.labelEn, labelUr: meta.labelUr, price, previous });
+  });
+
+  const premium = fuels.find((f) => f.key === 'premium');
+  const diesel = fuels.find((f) => f.key === 'diesel');
+  if (!premium || !diesel || premium.price < 100 || diesel.price < 100) {
+    throw new Error('petrol: could not parse a valid price table');
   }
+
+  const effectiveFrom = parseEffectiveFrom($('body').text().replace(/\s+/g, ' '));
+  if (!effectiveFrom) throw new Error('petrol: could not parse effective date');
+
+  // No nextRevision: the source doesn't publish one, and the revision cadence
+  // is set arbitrarily by the government (varies between ~5, 7, 15 days and
+  // off-cycle), so any computed date would be a guess. We only surface the
+  // real, scraped effective date.
+  return {
+    effectiveFrom,
+    fuels,
+    source: 'live',
+    fetchedAt: new Date().toISOString(),
+  };
 }
