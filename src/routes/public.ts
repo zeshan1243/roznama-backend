@@ -29,6 +29,7 @@ import { getCollections, getSections, getSection } from '../services/hadithBooks
 import { getArticleContent } from '../services/newsArticle.js';
 import { getTafsirEditions, getTafsirAyah } from '../services/tafsir.js';
 import { getTrainsLive, getTrainRoute, getTrainRuns } from '../services/trains.js';
+import { fetchBill } from '../services/bill.js';
 
 export const publicRouter = Router();
 
@@ -149,6 +150,21 @@ publicRouter.get(
     const trainNumber = Number(req.query.trainNumber ?? 0);
     if (!Number.isFinite(trainNumber) || trainNumber <= 0) return res.status(400).json([]);
     res.json(await getTrainRuns(trainNumber));
+  }),
+);
+
+// ---- Electricity bill lookup (PITC portal, parsed server-side) ----
+// The app renders the bill in its own native UI — we do the ASP.NET postback
+// dance and parse the bill HTML here. `disco` is the PITC portal segment
+// (e.g. "iescobill"); `ref` is the numeric reference number.
+publicRouter.get(
+  '/bill',
+  asyncHandler(async (req, res) => {
+    const disco = String(req.query.disco ?? '').toLowerCase();
+    const ref = String(req.query.ref ?? '').replace(/\D/g, '');
+    if (!/^[a-z]+bill$/.test(disco)) return res.status(400).json({ found: false, error: 'invalid disco' });
+    if (ref.length < 8 || ref.length > 14) return res.status(400).json({ found: false, error: 'invalid reference number' });
+    res.json(await fetchBill(disco, ref));
   }),
 );
 
