@@ -173,3 +173,19 @@ export function getLoadshedding(): {
     schedules: j.schedules,
   };
 }
+
+/* ----------------------- Utility tariffs / tax ---------------------- */
+// Consumer-end reference tables for the offline bill & tax calculators. Served
+// so the annually-revised rates can be updated without an app release; the app
+// keeps a compiled-in copy as its offline default. Payloads are authored in
+// camelCase and returned as-is (open-ended slabs use `upTo: null`).
+
+/** NEPRA electricity + SNGPL/OGRA gas domestic tariff tables. */
+export function getTariffs(): unknown {
+  return bundled('tariffs.json');
+}
+
+/** FBR salary income tax slabs. */
+export function getTaxSlabs(): unknown {
+  return bundled('tax_slabs.json');
+}

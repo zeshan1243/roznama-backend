@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-05-08T06:00:00+05:00",
-  "source": "Sample LESCO schedule (bundled). Real DISCO scraping requires a backend service.",
+  "source": "No live DISCO loadshedding source is integrated yet. The company list below is real; area schedules are populated only when a real feed is wired up server-side.",
   "discos": [
     { "code": "LESCO", "name_en": "Lahore Electric Supply Company", "name_ur": "لیسکو" },
     { "code": "KE",    "name_en": "K-Electric",                      "name_ur": "کے الیکٹرک" },
@@ -14,79 +14,5 @@
     { "code": "SEPCO", "name_en": "Sukkur Electric Power Co.",       "name_ur": "سیپکو" },
     { "code": "TESCO", "name_en": "Tribal Electric Supply Co.",      "name_ur": "ٹیسکو" }
   ],
-  "schedules": [
-    {
-      "disco": "LESCO",
-      "areas": [
-        { "name": "Gulberg, Lahore",   "slots": ["06:00-07:00", "14:00-15:00", "20:00-21:00"] },
-        { "name": "DHA, Lahore",       "slots": ["08:00-09:00", "16:00-17:00"] },
-        { "name": "Johar Town",        "slots": ["07:00-08:00", "15:00-16:00", "21:00-22:00"] },
-        { "name": "Model Town",        "slots": ["09:00-10:00", "17:00-18:00"] },
-        { "name": "Township",          "slots": ["10:00-11:00", "18:00-19:00", "22:00-23:00"] }
-      ]
-    },
-    {
-      "disco": "KE",
-      "areas": [
-        { "name": "DHA, Karachi",        "slots": ["07:00-08:00", "15:00-16:00"] },
-        { "name": "Clifton",             "slots": ["09:00-10:00", "17:00-18:00"] },
-        { "name": "Gulshan-e-Iqbal",     "slots": ["06:00-07:00", "14:00-15:00", "20:00-21:00"] },
-        { "name": "North Nazimabad",     "slots": ["08:00-09:00", "16:00-17:00", "22:00-23:00"] },
-        { "name": "Korangi",             "slots": ["10:00-11:00", "18:00-19:00"] }
-      ]
-    },
-    {
-      "disco": "IESCO",
-      "areas": [
-        { "name": "F-7, Islamabad",      "slots": ["10:00-11:00"] },
-        { "name": "F-10",                "slots": ["12:00-13:00"] },
-        { "name": "G-9",                 "slots": ["14:00-15:00"] },
-        { "name": "Bahria Town",         "slots": ["16:00-17:00"] },
-        { "name": "PWD",                 "slots": ["09:00-10:00", "21:00-22:00"] }
-      ]
-    },
-    {
-      "disco": "MEPCO",
-      "areas": [
-        { "name": "Cantt, Multan",       "slots": ["07:00-08:00", "13:00-14:00", "19:00-20:00"] },
-        { "name": "Gulgasht",            "slots": ["09:00-10:00", "15:00-16:00", "21:00-22:00"] },
-        { "name": "Shah Rukn-e-Alam",    "slots": ["11:00-12:00", "17:00-18:00", "23:00-00:00"] },
-        { "name": "Bosan Road",          "slots": ["08:00-09:00", "14:00-15:00", "20:00-21:00"] }
-      ]
-    },
-    {
-      "disco": "GEPCO",
-      "areas": [
-        { "name": "Cantt, Gujranwala",   "slots": ["08:00-09:00", "16:00-17:00"] },
-        { "name": "Satellite Town",      "slots": ["10:00-11:00", "18:00-19:00"] },
-        { "name": "Model Town",          "slots": ["07:00-08:00", "15:00-16:00", "21:00-22:00"] }
-      ]
-    },
-    {
-      "disco": "FESCO",
-      "areas": [
-        { "name": "Peoples Colony, Faisalabad", "slots": ["09:00-10:00", "17:00-18:00"] },
-        { "name": "D-Type Colony",              "slots": ["11:00-12:00", "19:00-20:00"] },
-        { "name": "Madina Town",                "slots": ["13:00-14:00", "21:00-22:00"] }
-      ]
-    },
-    { "disco": "HESCO", "areas": [
-      { "name": "Latifabad, Hyderabad", "slots": ["07:00-09:00", "15:00-17:00", "21:00-23:00"] },
-      { "name": "Qasimabad",            "slots": ["09:00-11:00", "17:00-19:00"] }
-    ]},
-    { "disco": "PESCO", "areas": [
-      { "name": "University Town, Peshawar", "slots": ["08:00-10:00", "16:00-18:00"] },
-      { "name": "Hayatabad",                 "slots": ["10:00-12:00", "18:00-20:00", "00:00-02:00"] }
-    ]},
-    { "disco": "QESCO", "areas": [
-      { "name": "Satellite Town, Quetta", "slots": ["09:00-11:00", "17:00-19:00"] }
-    ]},
-    { "disco": "SEPCO", "areas": [
-      { "name": "Sukkur", "slots": ["08:00-10:00", "14:00-16:00", "20:00-22:00"] }
-    ]},
-    { "disco": "TESCO", "areas": [
-      { "name": "Bajaur", "slots": ["07:00-09:00", "13:00-15:00", "19:00-21:00"] },
-      { "name": "Khyber", "slots": ["09:00-11:00", "15:00-17:00", "21:00-23:00"] }
-    ]}
-  ]
+  "schedules": []
 }

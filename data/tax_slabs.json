@@ -1,0 +1,14 @@
+{
+  "effectiveDate": "FY 2026-27 (Finance Act 2026)",
+  "source": "FBR salary income tax slabs. The FY26-27 budget restructured 6 slabs into 8, cut mid-band rates, and abolished the 9%/10% surcharge above Rs 10m. Update annually from the Finance Act / FBR.",
+  "slabs": [
+    { "upTo": 600000,  "base": 0,       "rate": 0.00 },
+    { "upTo": 1200000, "base": 0,       "rate": 0.01 },
+    { "upTo": 2200000, "base": 6000,    "rate": 0.11 },
+    { "upTo": 3200000, "base": 116000,  "rate": 0.20 },
+    { "upTo": 4100000, "base": 316000,  "rate": 0.25 },
+    { "upTo": 5600000, "base": 541000,  "rate": 0.29 },
+    { "upTo": 7000000, "base": 976000,  "rate": 0.32 },
+    { "upTo": null,    "base": 1424000, "rate": 0.35 }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "effectiveDate": "FY 2025-26 (effective 1 July 2025)",
+  "source": "NEPRA uniform domestic tariff (power); SNGPL/OGRA domestic tariff (gas). Consumer-end estimates; FPA/FCA varies monthly. Verify against the latest official bill or NEPRA/OGRA notification.",
+  "electricity": {
+    "protectedSlabs": [
+      { "upTo": 100, "rate": 10.54 },
+      { "upTo": 200, "rate": 13.01 }
+    ],
+    "unprotectedSlabs": [
+      { "upTo": 100, "rate": 22.44 },
+      { "upTo": 200, "rate": 28.91 },
+      { "upTo": 300, "rate": 33.10 },
+      { "upTo": 400, "rate": 37.99 },
+      { "upTo": 500, "rate": 40.20 },
+      { "upTo": 600, "rate": 41.62 },
+      { "upTo": 700, "rate": 42.76 },
+      { "upTo": null, "rate": 47.69 }
+    ],
+    "protectedUnitThreshold": 200,
+    "defaultFpaPerUnit": 3.0,
+    "gstRate": 0.18,
+    "dutyRate": 0.015,
+    "tvLicenceFee": 35.0
+  },
+  "gas": {
+    "hm3ToMmbtu": 3.96,
+    "protectedSlabs": [
+      { "upTo": 0.25, "rate": 200 },
+      { "upTo": 0.50, "rate": 250 },
+      { "upTo": 0.60, "rate": 300 },
+      { "upTo": null, "rate": 350 }
+    ],
+    "nonProtectedSlabs": [
+      { "upTo": 0.25, "rate": 300 },
+      { "upTo": 0.60, "rate": 600 },
+      { "upTo": 1.00, "rate": 1000 },
+      { "upTo": 1.50, "rate": 1200 },
+      { "upTo": 2.00, "rate": 1600 },
+      { "upTo": 3.00, "rate": 3000 },
+      { "upTo": 4.00, "rate": 3500 },
+      { "upTo": null, "rate": 4000 }
+    ],
+    "fixedChargeProtected": 400.0,
+    "fixedChargeNonProtected": 1000.0,
+    "gstRate": 0.18
+  }
+}

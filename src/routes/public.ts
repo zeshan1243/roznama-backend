@@ -22,6 +22,8 @@ import {
   getEmergency,
   getPackages,
   getLoadshedding,
+  getTariffs,
+  getTaxSlabs,
 } from '../services/reference.js';
 import { getCollections, getSections, getSection } from '../services/hadithBooks.js';
 import { getArticleContent } from '../services/newsArticle.js';
@@ -156,3 +158,7 @@ publicRouter.get('/trains', (_req, res) => res.json(getTrains()));
 publicRouter.get('/emergency', (_req, res) => res.json(getEmergency()));
 publicRouter.get('/packages', (_req, res) => res.json(getPackages()));
 publicRouter.get('/loadshedding', (_req, res) => res.json(getLoadshedding()));
+
+// ---- Calculator reference tables (annually-revised rates) ----
+publicRouter.get('/tariffs', (_req, res) => res.json(getTariffs()));
+publicRouter.get('/tax/slabs', (_req, res) => res.json(getTaxSlabs()));
