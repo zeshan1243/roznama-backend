@@ -269,6 +269,7 @@ Base URL: `http://localhost:8080`
 | GET | `/api/quran` · `/api/quran/today` | | Ayahs + ayah of the day |
 | GET | `/api/tafsir/editions` · `/api/tafsir/ayah` | `edition`, `surah`, `ayah` | Proxied tafsir |
 | GET | `/api/trains` · `/emergency` · `/packages` · `/loadshedding` | | Daily-life reference |
+| GET | `/api/loadshedding/feeder` | `reference` | Live per-feeder status + outage history, proxied from PITC CCMS (WAPDA DISCOs; not K-Electric) |
 | GET | `/api/tariffs` · `/api/tax/slabs` | | Electricity/gas tariff + income-tax slab tables for the offline calculators (annually-revised) |
 
 ### User data — `/api/me/*` (Bearer JWT required)
