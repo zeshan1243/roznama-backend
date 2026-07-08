@@ -8,6 +8,7 @@ import { errorHandler } from './middleware/error.js';
 import { publicRouter } from './routes/public.js';
 import { userRouter } from './routes/user.js';
 import { productivityRouter } from './routes/productivity.js';
+import { toolsRouter } from './routes/tools.js';
 import { startScheduler, refreshAll } from './services/ingest.js';
 import { startBillWatch } from './services/billWatch.js';
 
@@ -42,6 +43,9 @@ app.post('/api/admin/refresh', (req, res) => {
 app.use('/api', publicRouter);
 app.use('/api/me', userRouter);
 app.use('/api/me', productivityRouter);
+// Account-owned "My Life" tools: /api/todos, /api/expenses, /api/documents, …
+// (auth-guarded inside the router; user derived from the bearer token).
+app.use('/api', toolsRouter);
 
 app.use(errorHandler);
 
