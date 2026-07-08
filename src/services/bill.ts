@@ -21,6 +21,9 @@ import { cached } from '../lib/cache.js';
 
 const BASE = 'https://bill.pitc.com.pk';
 
+/** Which identifier the portal searches by: reference number or customer ID. */
+export type SearchBy = 'refno' | 'appno';
+
 // ---- Types (mirror the app's Bill model) ----------------------------------
 
 export interface LabelValue {
@@ -294,7 +297,7 @@ function blank(disco: string, fetchedAt: string, error: string | null): Bill {
 
 // ---- Fetch pipeline --------------------------------------------------------
 
-async function produceBill(disco: string, ref: string): Promise<Bill> {
+async function produceBill(disco: string, ref: string, by: SearchBy): Promise<Bill> {
   const jar = new Map<string, string>();
   const url = `${BASE}/${disco}`;
 
@@ -311,7 +314,7 @@ async function produceBill(disco: string, ref: string): Promise<Bill> {
     __VIEWSTATE: hidden($, '__VIEWSTATE'),
     __VIEWSTATEGENERATOR: hidden($, '__VIEWSTATEGENERATOR'),
     __EVENTVALIDATION: hidden($, '__EVENTVALIDATION'),
-    rbSearchByList: 'refno',
+    rbSearchByList: by, // 'refno' (reference no.) or 'appno' (customer ID)
     searchTextBox: ref,
     ruCodeTextBox: '',
     __RequestVerificationToken: rvt,
@@ -344,9 +347,11 @@ async function produceBill(disco: string, ref: string): Promise<Bill> {
 
 /**
  * Fetch + parse one electricity bill. [disco] is the PITC portal segment
- * (e.g. "iescobill"); [ref] is the numeric reference number. Cached briefly so
- * a quick re-check or a shared connection doesn't re-run the postback dance.
+ * (e.g. "iescobill"); [ref] is the numeric identifier — a 14-digit reference
+ * number when [by] is 'refno', or the customer ID when [by] is 'appno' (both
+ * are printed on every bill). Cached briefly so a quick re-check or a shared
+ * connection doesn't re-run the postback dance.
  */
-export function fetchBill(disco: string, ref: string): Promise<Bill> {
-  return cached(`bill:${disco}:${ref}`, 300, () => produceBill(disco, ref));
+export function fetchBill(disco: string, ref: string, by: SearchBy = 'refno'): Promise<Bill> {
+  return cached(`bill:${disco}:${by}:${ref}`, 300, () => produceBill(disco, ref, by));
 }

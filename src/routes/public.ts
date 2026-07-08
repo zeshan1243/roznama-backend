@@ -29,7 +29,7 @@ import { getCollections, getSections, getSection } from '../services/hadithBooks
 import { getArticleContent } from '../services/newsArticle.js';
 import { getTafsirEditions, getTafsirAyah } from '../services/tafsir.js';
 import { getTrainsLive, getTrainRoute, getTrainRuns } from '../services/trains.js';
-import { getFeederSchedule } from '../services/loadsheddingLive.js';
+import { fetchBill } from '../services/bill.js';
 
 export const publicRouter = Router();
 
@@ -153,24 +153,29 @@ publicRouter.get(
   }),
 );
 
+// ---- Electricity bill lookup (PITC portal, parsed server-side) ----
+// The app renders the bill in its own native UI — we do the ASP.NET postback
+// dance and parse the bill HTML here. `disco` is the PITC portal segment
+// (e.g. "iescobill"); `ref` is the numeric identifier; `by` picks whether it's
+// a reference number ('refno', default) or a customer ID ('appno').
+publicRouter.get(
+  '/bill',
+  asyncHandler(async (req, res) => {
+    const disco = String(req.query.disco ?? '').toLowerCase();
+    const ref = String(req.query.ref ?? '').replace(/\D/g, '');
+    const by = req.query.by === 'appno' ? 'appno' : 'refno';
+    if (!/^[a-z]+bill$/.test(disco)) return res.status(400).json({ found: false, error: 'invalid disco' });
+    if (ref.length < 8 || ref.length > 14) return res.status(400).json({ found: false, error: 'invalid reference number' });
+    res.json(await fetchBill(disco, ref, by));
+  }),
+);
+
 // ---- Daily-life reference ----
 // Legacy bundled schedule (kept for the seed script / older clients).
 publicRouter.get('/trains', (_req, res) => res.json(getTrains()));
 publicRouter.get('/emergency', (_req, res) => res.json(getEmergency()));
 publicRouter.get('/packages', (_req, res) => res.json(getPackages()));
 publicRouter.get('/loadshedding', (_req, res) => res.json(getLoadshedding()));
-// Live per-feeder schedule from PITC CCMS, keyed by the consumer reference
-// number on the bill (WAPDA DISCOs only — not K-Electric).
-publicRouter.get(
-  '/loadshedding/feeder',
-  asyncHandler(async (req, res) => {
-    const reference = String(req.query.reference ?? '').replace(/\D/g, '');
-    if (reference.length < 10 || reference.length > 16) {
-      return res.status(400).json({ error: 'invalid reference number' });
-    }
-    res.json(await getFeederSchedule(reference));
-  }),
-);
 
 // ---- Calculator reference tables (annually-revised rates) ----
 publicRouter.get('/tariffs', (_req, res) => res.json(getTariffs()));
