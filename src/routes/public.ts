@@ -29,6 +29,7 @@ import { getCollections, getSections, getSection } from '../services/hadithBooks
 import { getArticleContent } from '../services/newsArticle.js';
 import { getTafsirEditions, getTafsirAyah } from '../services/tafsir.js';
 import { getTrainsLive, getTrainRoute, getTrainRuns } from '../services/trains.js';
+import { getFeederSchedule } from '../services/loadsheddingLive.js';
 import { fetchBill } from '../services/bill.js';
 
 export const publicRouter = Router();
@@ -176,6 +177,18 @@ publicRouter.get('/trains', (_req, res) => res.json(getTrains()));
 publicRouter.get('/emergency', (_req, res) => res.json(getEmergency()));
 publicRouter.get('/packages', (_req, res) => res.json(getPackages()));
 publicRouter.get('/loadshedding', (_req, res) => res.json(getLoadshedding()));
+// Live per-feeder schedule from PITC CCMS, keyed by the consumer reference
+// number on the bill (WAPDA DISCOs only — not K-Electric).
+publicRouter.get(
+  '/loadshedding/feeder',
+  asyncHandler(async (req, res) => {
+    const reference = String(req.query.reference ?? '').replace(/\D/g, '');
+    if (reference.length < 10 || reference.length > 16) {
+      return res.status(400).json({ error: 'invalid reference number' });
+    }
+    res.json(await getFeederSchedule(reference));
+  }),
+);
 
 // ---- Calculator reference tables (annually-revised rates) ----
 publicRouter.get('/tariffs', (_req, res) => res.json(getTariffs()));
