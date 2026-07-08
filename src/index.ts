@@ -9,6 +9,7 @@ import { publicRouter } from './routes/public.js';
 import { userRouter } from './routes/user.js';
 import { productivityRouter } from './routes/productivity.js';
 import { startScheduler, refreshAll } from './services/ingest.js';
+import { startBillWatch } from './services/billWatch.js';
 
 const app = express();
 
@@ -50,4 +51,5 @@ app.listen(config.port, () => {
     console.warn('[roznama-api] Supabase not configured — user/auth routes will 500 until .env is set.');
   }
   startScheduler();
+  startBillWatch();
 });
