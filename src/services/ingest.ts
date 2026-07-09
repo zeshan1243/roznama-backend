@@ -3,7 +3,7 @@
  * the latest snapshot to the DB (feed_snapshots). The API reads from the DB, so
  * user requests never trigger a live scrape — they read the last stored value.
  */
-import { saveSnapshot } from '../lib/store.js';
+import { saveSnapshot, readSnapshot } from '../lib/store.js';
 import { supabaseConfigured } from '../config.js';
 import { CITIES } from '../data/cities.js';
 import { fetchCurrency, CurrencySnapshot } from './currency.js';
@@ -11,7 +11,8 @@ import { fetchCrypto } from './crypto.js';
 import { fetchStocks } from './stocks.js';
 import { fetchMarkets } from './markets.js';
 import { fetchWeather } from './weather.js';
-import { fetchPetrol } from './petrol.js';
+import { fetchPetrol, PetrolSnapshot } from './petrol.js';
+import { sendTopic, pushConfigured } from './push.js';
 import { fetchNss } from './nss.js';
 import { recordUsdPkr } from './fxHistory.js';
 import { fetchNewsAll, fetchCricketAll } from './news.js';
@@ -31,6 +32,11 @@ interface Feed {
    * successfully-scraped data (with its original "last updated" timestamp).
    */
   accept?: (data: unknown) => boolean;
+  /**
+   * Called after a snapshot is stored, with the previous stored value (or null)
+   * and the new one — for change-driven side effects like a topic push.
+   */
+  onChange?: (prev: unknown | null, next: unknown) => Promise<void>;
 }
 
 const MIN = 60_000;
@@ -59,7 +65,36 @@ const FEEDS: Feed[] = [
   { key: 'crypto', intervalMs: 2 * MIN, producer: fetchCrypto, accept: nonEmpty('coins') },
   { key: 'stocks', intervalMs: 6 * 60 * MIN, producer: fetchStocks, accept: nonEmpty('quotes') },
   { key: 'markets', intervalMs: 5 * MIN, producer: fetchMarkets, accept: nonEmpty('indices') },
-  { key: 'petrol', intervalMs: 60 * MIN, producer: fetchPetrol, accept: liveOnly },
+  {
+    key: 'petrol',
+    intervalMs: 60 * MIN,
+    producer: fetchPetrol,
+    accept: liveOnly,
+    // Push a broadcast when the effective (revision) date advances — i.e. a new
+    // official price revision, not just a re-scrape.
+    onChange: async (prev, next) => {
+      if (!pushConfigured()) return;
+      const p = prev as PetrolSnapshot | null;
+      const n = next as PetrolSnapshot;
+      if (!p || p.effectiveFrom === n.effectiveFrom) return;
+      const petrol = n.fuels.find((f) => f.key === 'premium');
+      const diesel = n.fuels.find((f) => f.key === 'diesel');
+      const parts = [
+        petrol && `Petrol Rs ${petrol.price}`,
+        diesel && `Diesel Rs ${diesel.price}`,
+      ].filter(Boolean).join('  ·  ');
+      try {
+        await sendTopic('petrol', {
+          title: 'Petrol prices updated',
+          body: `${parts} — effective ${n.effectiveFrom}`,
+          data: { type: 'petrol' },
+        });
+        console.log('[ingest] petrol price change → pushed topic');
+      } catch (err) {
+        console.warn('[ingest] petrol topic push failed:', err instanceof Error ? err.message : err);
+      }
+    },
+  },
   { key: 'nss', intervalMs: 6 * 60 * MIN, producer: fetchNss, accept: liveOnly },
   { key: 'news', intervalMs: 5 * MIN, producer: fetchNewsAll, accept: (d) => Array.isArray(d) && d.length > 0 },
   { key: 'cricket', intervalMs: 5 * MIN, producer: fetchCricketAll, accept: (d) => Array.isArray(d) && d.length > 0 },
@@ -84,8 +119,12 @@ async function refresh(feed: Feed): Promise<void> {
       console.warn(`[ingest] ${feed.key} ⏭ produced no usable data — keeping last snapshot`);
       return;
     }
+    // Capture the previous stored value before overwriting, for onChange.
+    let prev: unknown = null;
+    if (feed.onChange) prev = (await readSnapshot(feed.key))?.data ?? null;
     await saveSnapshot(feed.key, data);
     if (feed.after) await feed.after(data);
+    if (feed.onChange) await feed.onChange(prev, data);
     console.log(`[ingest] ${feed.key} ✓`);
   } catch (err) {
     // Producer threw (source unreachable) — the last snapshot is untouched, so

@@ -70,3 +70,18 @@ export async function sendPush(tokens: string[], msg: PushMessage): Promise<stri
   });
   return invalid;
 }
+
+/**
+ * Broadcast [msg] to every device subscribed to [topic] (e.g. 'petrol') — for
+ * global alerts not tied to a specific user. No-op when FCM isn't configured.
+ */
+export async function sendTopic(topic: string, msg: PushMessage): Promise<void> {
+  if (!pushConfigured()) return;
+  await messaging().send({
+    topic,
+    notification: { title: msg.title, body: msg.body },
+    data: msg.data,
+    android: { priority: 'high' },
+    apns: { payload: { aps: { sound: 'default' } } },
+  });
+}
