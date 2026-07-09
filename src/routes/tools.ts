@@ -127,9 +127,9 @@ function singleton(name: string): void {
 
 // List tools (one row per record).
 for (const name of [
-  'todos', 'notes', 'reminders', 'grocery', 'occasions', 'recipes', 'alarms',
-  'learning', 'documents', 'games', 'habits', 'expenses', 'medications',
-  'udhaar', 'installments', 'committee',
+  'todos', 'notes', 'reminders', 'grocery', 'grocery_lists', 'occasions',
+  'recipes', 'alarms', 'learning', 'documents', 'games', 'habits', 'expenses',
+  'medications', 'udhaar', 'installments', 'committee',
 ]) {
   crud(name);
 }
