@@ -3,3 +3,7 @@ dist/
 .env
 .env.local
 *.log
+
+# Firebase service-account key (never commit)
+fcm-key.json
+*-firebase-adminsdk-*.json
