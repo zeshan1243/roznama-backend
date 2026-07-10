@@ -3,7 +3,7 @@
  * the latest snapshot to the DB (feed_snapshots). The API reads from the DB, so
  * user requests never trigger a live scrape — they read the last stored value.
  */
-import { saveSnapshot, readSnapshot } from '../lib/store.js';
+import { saveSnapshot, readSnapshot, onSnapshotServed } from '../lib/store.js';
 import { supabaseConfigured } from '../config.js';
 import { CITIES } from '../data/cities.js';
 import { fetchCurrency, CurrencySnapshot } from './currency.js';
@@ -142,12 +142,38 @@ export async function refreshAll(): Promise<void> {
   }
 }
 
+/**
+ * Stale-while-revalidate: every API read of a stored snapshot passes through
+ * here. If the snapshot is older than 1.5× the feed's scrape interval — the
+ * periodic timer missed at least one run (sleeping free-tier host, crashed
+ * process) — kick a background [refresh]. The request that noticed still
+ * returns the stale data instantly; the next fetch gets the fresh value.
+ * Because this reuses [refresh], change-driven side effects (the petrol
+ * price-revision topic push, FX history) fire exactly as they do from the
+ * scheduler, so price-change notifications go out even when only user
+ * traffic — not the timer — is keeping the process alive.
+ */
+const STALE_FACTOR = 1.5;
+const revalidating = new Set<string>();
+
+function revalidateIfStale(key: string, fetchedAt: string): void {
+  const feed = FEEDS.find((f) => f.key === key);
+  if (!feed) return;
+  const age = Date.now() - Date.parse(fetchedAt);
+  if (!Number.isFinite(age) || age < feed.intervalMs * STALE_FACTOR) return;
+  if (revalidating.has(key)) return;
+  revalidating.add(key);
+  console.log(`[ingest] ${key} stale (~${Math.round(age / 60_000)}m old) → background refresh`);
+  void refresh(feed).finally(() => revalidating.delete(key));
+}
+
 /** Start the periodic scheduler (no-op if Supabase isn't configured). */
 export function startScheduler(): void {
   if (!supabaseConfigured) {
     console.warn('[ingest] Supabase not configured — scheduler disabled (API will fetch live per-request).');
     return;
   }
+  onSnapshotServed(revalidateIfStale);
   void refreshAll();
   for (const feed of FEEDS) {
     setInterval(() => void refresh(feed), feed.intervalMs);
