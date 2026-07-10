@@ -1,6 +1,6 @@
 import { http } from '../lib/http.js';
 
-export type CryptoSource = 'coinGecko' | 'binance';
+export type CryptoSource = 'coinGecko' | 'binance' | 'coinCap';
 
 export interface CryptoCoin {
   id: string;
@@ -39,17 +39,18 @@ interface CoinMeta {
   symbol: string;
   name: string;
   binanceSymbol: string | null;
+  coincapId: string;
 }
 
 const COINS: CoinMeta[] = [
-  { id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', binanceSymbol: 'BTCUSDT' },
-  { id: 'ethereum', symbol: 'ETH', name: 'Ethereum', binanceSymbol: 'ETHUSDT' },
-  { id: 'tether', symbol: 'USDT', name: 'Tether', binanceSymbol: null },
-  { id: 'binancecoin', symbol: 'BNB', name: 'BNB', binanceSymbol: 'BNBUSDT' },
-  { id: 'solana', symbol: 'SOL', name: 'Solana', binanceSymbol: 'SOLUSDT' },
-  { id: 'ripple', symbol: 'XRP', name: 'XRP', binanceSymbol: 'XRPUSDT' },
-  { id: 'cardano', symbol: 'ADA', name: 'Cardano', binanceSymbol: 'ADAUSDT' },
-  { id: 'dogecoin', symbol: 'DOGE', name: 'Dogecoin', binanceSymbol: 'DOGEUSDT' },
+  { id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', binanceSymbol: 'BTCUSDT', coincapId: 'bitcoin' },
+  { id: 'ethereum', symbol: 'ETH', name: 'Ethereum', binanceSymbol: 'ETHUSDT', coincapId: 'ethereum' },
+  { id: 'tether', symbol: 'USDT', name: 'Tether', binanceSymbol: null, coincapId: 'tether' },
+  { id: 'binancecoin', symbol: 'BNB', name: 'BNB', binanceSymbol: 'BNBUSDT', coincapId: 'binance-coin' },
+  { id: 'solana', symbol: 'SOL', name: 'Solana', binanceSymbol: 'SOLUSDT', coincapId: 'solana' },
+  { id: 'ripple', symbol: 'XRP', name: 'XRP', binanceSymbol: 'XRPUSDT', coincapId: 'xrp' },
+  { id: 'cardano', symbol: 'ADA', name: 'Cardano', binanceSymbol: 'ADAUSDT', coincapId: 'cardano' },
+  { id: 'dogecoin', symbol: 'DOGE', name: 'Dogecoin', binanceSymbol: 'DOGEUSDT', coincapId: 'dogecoin' },
 ];
 
 // coins/markets gives full metadata (market cap, ATH, supply, image). Prices are
@@ -152,15 +153,66 @@ async function fetchBinance(): Promise<CryptoCoin[]> {
   return out;
 }
 
+/**
+ * CoinCap — keyless, US-friendly (unlike Binance, which 451s US datacenter
+ * IPs) and generously rate-limited (unlike CoinGecko's free tier). Prices +
+ * 24h change only, same as the Binance fallback.
+ */
+async function fetchCoinCap(): Promise<CryptoCoin[]> {
+  const pkrPerUsd = await fetchPkrRate();
+  const resp = await http.get('https://api.coincap.io/v2/assets', {
+    params: { ids: COINS.map((c) => c.coincapId).join(',') },
+    headers: { Accept: 'application/json' },
+  });
+  if (resp.status !== 200) throw new Error(`CoinCap returned ${resp.status}`);
+  const rows = (resp.data as { data: Array<Record<string, unknown>> }).data ?? [];
+  const byId = new Map(rows.map((r) => [String(r.id), r]));
+  const out: CryptoCoin[] = [];
+  for (const meta of COINS) {
+    const row = byId.get(meta.coincapId);
+    if (!row) continue;
+    const usd = Number(row.priceUsd);
+    if (!Number.isFinite(usd)) continue;
+    out.push({
+      id: meta.id,
+      symbol: meta.symbol,
+      name: meta.name,
+      priceUsd: usd,
+      pricePkr: usd * pkrPerUsd,
+      change24hPercent: Number(row.changePercent24Hr) || 0,
+    });
+  }
+  if (!out.length) throw new Error('CoinCap returned no usable rows');
+  return out;
+}
+
+/**
+ * Source chain: CoinGecko (full metadata) → Binance → CoinCap. Every
+ * source's failure is collected so the ingest error map shows why each one
+ * fell through, not just the last.
+ */
 export async function fetchCrypto(): Promise<CryptoSnapshot> {
+  const failures: string[] = [];
   try {
     const coins = await fetchCoinGecko();
     if (coins.length) {
       return { coins, fetchedAt: new Date().toISOString(), source: 'coinGecko' };
     }
-  } catch {
-    /* fall through to Binance */
+    failures.push('CoinGecko: no rows');
+  } catch (err) {
+    failures.push(`CoinGecko: ${err instanceof Error ? err.message : err}`);
   }
-  const coins = await fetchBinance();
-  return { coins, fetchedAt: new Date().toISOString(), source: 'binance' };
+  try {
+    const coins = await fetchBinance();
+    return { coins, fetchedAt: new Date().toISOString(), source: 'binance' };
+  } catch (err) {
+    failures.push(`Binance: ${err instanceof Error ? err.message : err}`);
+  }
+  try {
+    const coins = await fetchCoinCap();
+    return { coins, fetchedAt: new Date().toISOString(), source: 'coinCap' };
+  } catch (err) {
+    failures.push(`CoinCap: ${err instanceof Error ? err.message : err}`);
+  }
+  throw new Error(`crypto: all sources failed — ${failures.join(' / ')}`);
 }
