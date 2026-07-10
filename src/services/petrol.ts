@@ -1,6 +1,27 @@
 import * as cheerio from 'cheerio';
 import { http, USER_AGENT } from '../lib/http.js';
 
+/**
+ * PakWheels sits behind Cloudflare, which intermittently 403s datacenter IPs
+ * (Railway) — a bare User-Agent makes the bot score worse. Send a realistic
+ * browser navigation profile and retry with backoff; blocks are usually
+ * per-request, so a second attempt often passes.
+ */
+const SCRAPE_HEADERS: Record<string, string> = {
+  'User-Agent': USER_AGENT,
+  Accept:
+    'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9,ur;q=0.8',
+  Referer: 'https://www.google.com/',
+  'Upgrade-Insecure-Requests': '1',
+  'Sec-Fetch-Dest': 'document',
+  'Sec-Fetch-Mode': 'navigate',
+  'Sec-Fetch-Site': 'cross-site',
+  'Sec-Fetch-User': '?1',
+};
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
 export type PetrolSource = 'live';
 
 export interface FuelPrice {
@@ -79,10 +100,16 @@ function parseEffectiveFrom(bodyText: string): string | null {
 }
 
 export async function fetchPetrol(): Promise<PetrolSnapshot> {
-  const resp = await http.get('https://www.pakwheels.com/petroleum-prices-in-pakistan', {
-    headers: { 'User-Agent': USER_AGENT },
-    timeout: 10000,
-  });
+  const url = 'https://www.pakwheels.com/petroleum-prices-in-pakistan';
+  let resp = await http.get(url, { headers: SCRAPE_HEADERS, timeout: 10000 });
+  // Retry blocked/erroring responses with backoff (2s, 5s) before giving up —
+  // the keep-last-good guard upstream means a hard failure only delays the
+  // update until the next tick, but most CF blocks clear on retry.
+  for (const delayMs of [2000, 5000]) {
+    if (resp.status === 200) break;
+    await sleep(delayMs);
+    resp = await http.get(url, { headers: SCRAPE_HEADERS, timeout: 10000 });
+  }
   if (resp.status !== 200) throw new Error(`petrol: source returned HTTP ${resp.status}`);
 
   const $ = cheerio.load(resp.data);
