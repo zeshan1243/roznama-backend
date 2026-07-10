@@ -16,6 +16,18 @@ export async function saveSnapshot<T>(key: string, data: T): Promise<void> {
   if (error) throw new Error(`saveSnapshot(${key}): ${error.message}`);
 }
 
+/** Read every stored feed's `fetched_at` in one query (key → timestamp). */
+export async function readSnapshotAges(): Promise<Record<string, string>> {
+  if (!supabaseConfigured) return {};
+  const { data, error } = await supabaseAdmin()
+    .from('feed_snapshots')
+    .select('key, fetched_at');
+  if (error) throw new Error(`readSnapshotAges: ${error.message}`);
+  return Object.fromEntries(
+    (data ?? []).map((r) => [r.key as string, r.fetched_at as string]),
+  );
+}
+
 /** Read the latest stored payload for a feed key, or null if none. */
 export async function readSnapshot<T>(key: string): Promise<Snapshot<T> | null> {
   if (!supabaseConfigured) return null;

@@ -3,7 +3,7 @@
  * the latest snapshot to the DB (feed_snapshots). The API reads from the DB, so
  * user requests never trigger a live scrape — they read the last stored value.
  */
-import { saveSnapshot, readSnapshot, onSnapshotServed } from '../lib/store.js';
+import { saveSnapshot, readSnapshot, readSnapshotAges, onSnapshotServed } from '../lib/store.js';
 import { supabaseConfigured } from '../config.js';
 import { CITIES } from '../data/cities.js';
 import { fetchCurrency, CurrencySnapshot } from './currency.js';
@@ -165,6 +165,37 @@ function revalidateIfStale(key: string, fetchedAt: string): void {
   revalidating.add(key);
   console.log(`[ingest] ${key} stale (~${Math.round(age / 60_000)}m old) → background refresh`);
   void refresh(feed).finally(() => revalidating.delete(key));
+}
+
+/**
+ * Refresh only the feeds whose stored snapshot is overdue (or missing).
+ * Backs the `/api/cron/tick` endpoint: an external pinger (cron-job.org,
+ * UptimeRobot, a GitHub Action) calls it every 10–15 min, which both wakes
+ * a sleeping host and guarantees scheduled scrapes — and their
+ * change-driven pushes, like the petrol price alert — run even when no
+ * user opens the app. Staleness-gated and deduped, so calling it often
+ * (or publicly) can't stampede the sources.
+ */
+export async function refreshStaleFeeds(): Promise<string[]> {
+  const ages = await readSnapshotAges();
+  const kicked: string[] = [];
+  for (const feed of FEEDS) {
+    if (revalidating.has(feed.key)) continue;
+    const fetchedAt = ages[feed.key];
+    if (fetchedAt) {
+      const age = Date.now() - Date.parse(fetchedAt);
+      if (Number.isFinite(age) && age < feed.intervalMs * STALE_FACTOR) continue;
+    }
+    revalidating.add(feed.key);
+    kicked.push(feed.key);
+    // Same stagger as refreshAll so a long-asleep host doesn't burst-hit
+    // every source in one tick.
+    setTimeout(() => {
+      void refresh(feed).finally(() => revalidating.delete(feed.key));
+    }, (kicked.length - 1) * 400);
+  }
+  if (kicked.length > 0) console.log(`[ingest] cron tick → refreshing: ${kicked.join(', ')}`);
+  return kicked;
 }
 
 /** Start the periodic scheduler (no-op if Supabase isn't configured). */

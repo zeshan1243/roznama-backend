@@ -9,7 +9,7 @@ import { publicRouter } from './routes/public.js';
 import { userRouter } from './routes/user.js';
 import { productivityRouter } from './routes/productivity.js';
 import { toolsRouter } from './routes/tools.js';
-import { startScheduler, refreshAll } from './services/ingest.js';
+import { startScheduler, refreshAll, refreshStaleFeeds } from './services/ingest.js';
 import { startBillWatch } from './services/billWatch.js';
 
 const app = express();
@@ -28,6 +28,20 @@ app.use(
 app.get('/api/health', (_req, res) =>
   res.json({ ok: true, supabase: supabaseConfigured, time: new Date().toISOString() }),
 );
+
+// External-cron heartbeat: re-scrapes only the feeds whose snapshot is
+// overdue. Point a free pinger (cron-job.org / UptimeRobot / GitHub Action)
+// here every 10–15 min — it wakes a sleeping host AND guarantees scheduled
+// scrapes and their change-driven pushes (petrol price alerts) run even
+// when no user opens the app. Safe unauthenticated: idempotent, staleness-
+// gated, and deduped, so frequent or hostile calls can't stampede sources.
+app.get('/api/cron/tick', (_req, res) => {
+  refreshStaleFeeds()
+    .then((kicked) => res.json({ ok: true, kicked }))
+    .catch((err: unknown) =>
+      res.status(500).json({ ok: false, error: err instanceof Error ? err.message : 'tick failed' }),
+    );
+});
 
 // Manual re-scrape trigger. Guarded by ADMIN_KEY if set; disabled otherwise.
 app.post('/api/admin/refresh', (req, res) => {
