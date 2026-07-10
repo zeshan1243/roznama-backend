@@ -22,13 +22,19 @@ export function pushConfigured(): boolean {
   return Boolean(process.env.FCM_SERVICE_ACCOUNT);
 }
 
+/** Why the last serviceAccount() parse failed — surfaced in thrown errors. */
+let saParseError: string | null = null;
+
 function serviceAccount(): Record<string, unknown> | null {
   const raw = process.env.FCM_SERVICE_ACCOUNT;
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as Record<string, unknown>;
+    const sa = JSON.parse(raw) as Record<string, unknown>;
+    saParseError = null;
+    return sa;
   } catch (err) {
-    console.error('[push] FCM_SERVICE_ACCOUNT is not valid JSON:', err instanceof Error ? err.message : err);
+    saParseError = err instanceof Error ? err.message : String(err);
+    console.error('[push] FCM_SERVICE_ACCOUNT is not valid JSON:', saParseError);
     return null;
   }
 }
@@ -36,7 +42,15 @@ function serviceAccount(): Record<string, unknown> | null {
 function messaging() {
   if (!app) {
     const sa = serviceAccount();
-    if (!sa) throw new Error('FCM not configured');
+    if (!sa) {
+      // Name the exact problem (env var value starts/length + parse error) so
+      // a mangled paste is diagnosable from the push-test response.
+      const raw = process.env.FCM_SERVICE_ACCOUNT ?? '';
+      throw new Error(
+        `FCM service account invalid — ${saParseError ?? 'unset'} ` +
+          `(value: ${raw.length} chars, starts "${raw.slice(0, 12)}")`,
+      );
+    }
     app = getApps()[0] ?? initializeApp({ credential: cert(sa as never) });
   }
   return getMessaging(app);
