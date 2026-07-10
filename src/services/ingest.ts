@@ -73,10 +73,16 @@ const FEEDS: Feed[] = [
     // Push a broadcast when the effective (revision) date advances — i.e. a new
     // official price revision, not just a re-scrape.
     onChange: async (prev, next) => {
-      if (!pushConfigured()) return;
       const p = prev as PetrolSnapshot | null;
       const n = next as PetrolSnapshot;
       if (!p || p.effectiveFrom === n.effectiveFrom) return;
+      // A revision landed but the push can't go out — surface it in the
+      // tick errors map instead of silently skipping.
+      if (!pushConfigured()) {
+        lastErrors.set('push:petrol', 'FCM_SERVICE_ACCOUNT not set — price-change push skipped');
+        console.warn('[ingest] petrol price change but FCM_SERVICE_ACCOUNT unset — push skipped');
+        return;
+      }
       const petrol = n.fuels.find((f) => f.key === 'premium');
       const diesel = n.fuels.find((f) => f.key === 'diesel');
       const parts = [
@@ -89,9 +95,12 @@ const FEEDS: Feed[] = [
           body: `${parts} — effective ${n.effectiveFrom}`,
           data: { type: 'petrol' },
         });
+        lastErrors.delete('push:petrol');
         console.log('[ingest] petrol price change → pushed topic');
       } catch (err) {
-        console.warn('[ingest] petrol topic push failed:', err instanceof Error ? err.message : err);
+        const msg = err instanceof Error ? err.message : String(err);
+        lastErrors.set('push:petrol', msg);
+        console.warn('[ingest] petrol topic push failed:', msg);
       }
     },
   },

@@ -11,6 +11,7 @@ import { productivityRouter } from './routes/productivity.js';
 import { toolsRouter } from './routes/tools.js';
 import { startScheduler, refreshAll, refreshStaleFeeds, feedErrors } from './services/ingest.js';
 import { startBillWatch } from './services/billWatch.js';
+import { pushConfigured, sendTopic } from './services/push.js';
 
 const app = express();
 
@@ -26,8 +27,37 @@ app.use(
 );
 
 app.get('/api/health', (_req, res) =>
-  res.json({ ok: true, supabase: supabaseConfigured, time: new Date().toISOString() }),
+  res.json({
+    ok: true,
+    supabase: supabaseConfigured,
+    push: pushConfigured(),
+    time: new Date().toISOString(),
+  }),
 );
+
+// Sends a test broadcast to the 'petrol' topic so push delivery can be
+// verified end-to-end on demand (instead of waiting for a real price
+// revision). Guarded by ADMIN_KEY (header or ?key=) like /admin/refresh.
+app.get('/api/admin/push-test', (req, res) => {
+  const key = process.env.ADMIN_KEY;
+  if (!key || (req.header('x-admin-key') !== key && req.query.key !== key)) {
+    res.status(403).json({ error: 'Forbidden' });
+    return;
+  }
+  if (!pushConfigured()) {
+    res.status(503).json({ ok: false, error: 'FCM_SERVICE_ACCOUNT not set' });
+    return;
+  }
+  sendTopic('petrol', {
+    title: 'Roznama test notification',
+    body: 'Push pipeline is working — you can ignore this.',
+    data: { type: 'petrol' },
+  })
+    .then(() => res.json({ ok: true, message: "Test push sent to topic 'petrol'" }))
+    .catch((err: unknown) =>
+      res.status(500).json({ ok: false, error: err instanceof Error ? err.message : 'send failed' }),
+    );
+});
 
 // External-cron heartbeat: re-scrapes only the feeds whose snapshot is
 // overdue. Point a free pinger (cron-job.org / UptimeRobot / GitHub Action)
