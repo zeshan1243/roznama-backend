@@ -9,7 +9,7 @@ import { publicRouter } from './routes/public.js';
 import { userRouter } from './routes/user.js';
 import { productivityRouter } from './routes/productivity.js';
 import { toolsRouter } from './routes/tools.js';
-import { startScheduler, refreshAll, refreshStaleFeeds } from './services/ingest.js';
+import { startScheduler, refreshAll, refreshStaleFeeds, feedErrors } from './services/ingest.js';
 import { startBillWatch } from './services/billWatch.js';
 
 const app = express();
@@ -37,7 +37,7 @@ app.get('/api/health', (_req, res) =>
 // gated, and deduped, so frequent or hostile calls can't stampede sources.
 app.get('/api/cron/tick', (_req, res) => {
   refreshStaleFeeds()
-    .then((kicked) => res.json({ ok: true, kicked }))
+    .then((kicked) => res.json({ ok: true, kicked, errors: feedErrors() }))
     .catch((err: unknown) =>
       res.status(500).json({ ok: false, error: err instanceof Error ? err.message : 'tick failed' }),
     );

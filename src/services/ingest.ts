@@ -110,12 +110,25 @@ const FEEDS: Feed[] = [
   })),
 ];
 
+/**
+ * Last refresh failure per feed key (cleared on the next success). Exposed
+ * via `/api/cron/tick` so feed health is diagnosable from a browser without
+ * host log access.
+ */
+const lastErrors = new Map<string, string>();
+
+export function feedErrors(): Record<string, string> {
+  return Object.fromEntries(lastErrors);
+}
+
 async function refresh(feed: Feed): Promise<void> {
   try {
     const data = await feed.producer();
     // Don't overwrite a good stored snapshot with an empty / fallback result —
-    // keep serving the last successfully-scraped data instead.
-    if (feed.accept && !feed.accept(data)) {
+    // keep serving the last successfully-scraped data instead. (null/undefined
+    // would also violate feed_snapshots' NOT NULL, so treat it the same way.)
+    if (data == null || (feed.accept && !feed.accept(data))) {
+      lastErrors.set(feed.key, 'produced no usable data — kept last snapshot');
       console.warn(`[ingest] ${feed.key} ⏭ produced no usable data — keeping last snapshot`);
       return;
     }
@@ -125,11 +138,14 @@ async function refresh(feed: Feed): Promise<void> {
     await saveSnapshot(feed.key, data);
     if (feed.after) await feed.after(data);
     if (feed.onChange) await feed.onChange(prev, data);
+    lastErrors.delete(feed.key);
     console.log(`[ingest] ${feed.key} ✓`);
   } catch (err) {
     // Producer threw (source unreachable) — the last snapshot is untouched, so
     // the API keeps serving it.
-    console.warn(`[ingest] ${feed.key} ✗`, err instanceof Error ? err.message : err);
+    const msg = err instanceof Error ? err.message : String(err);
+    lastErrors.set(feed.key, msg);
+    console.warn(`[ingest] ${feed.key} ✗`, msg);
   }
 }
 
