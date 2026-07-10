@@ -99,8 +99,11 @@ function parseEffectiveFrom(bodyText: string): string | null {
   return new Date(Date.UTC(year, month, day)).toISOString().slice(0, 10);
 }
 
-export async function fetchPetrol(): Promise<PetrolSnapshot> {
-  const url = 'https://www.pakwheels.com/petroleum-prices-in-pakistan';
+const SOURCE_URL = 'https://www.pakwheels.com/petroleum-prices-in-pakistan';
+
+/** Direct scrape of the PakWheels HTML page. */
+async function fetchDirect(): Promise<PetrolSnapshot> {
+  const url = SOURCE_URL;
   let resp = await http.get(url, { headers: SCRAPE_HEADERS, timeout: 10000 });
   // Retry blocked/erroring responses with backoff (2s, 5s) before giving up —
   // the keep-last-good guard upstream means a hard failure only delays the
@@ -153,4 +156,79 @@ export async function fetchPetrol(): Promise<PetrolSnapshot> {
     source: 'live',
     fetchedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Second view of the same page through the r.jina.ai reader proxy with its
+ * cache bypassed. Two failure modes of the direct scrape this covers:
+ * Cloudflare 403s against datacenter IPs, and PakWheels' CDN serving
+ * international visitors a stale page for hours after a revision (the
+ * reader's origin fetch sees the fresh table). Returns markdown; rows look
+ * like `| Petrol (Super) | PKR 299.5 | PKR 297.53 | 1.97 |`.
+ */
+async function fetchViaReader(): Promise<PetrolSnapshot> {
+  const resp = await http.get<string>(`https://r.jina.ai/${SOURCE_URL}`, {
+    // curl-ish UA + no-cache so the reader does a fresh origin fetch and
+    // responds with plain markdown rather than its HTML wrapper.
+    headers: { 'User-Agent': 'curl/8.4', Accept: 'text/plain', 'x-no-cache': 'true' },
+    timeout: 30_000,
+    responseType: 'text',
+  });
+  if (resp.status !== 200) throw new Error(`petrol reader: HTTP ${resp.status}`);
+  const text = String(resp.data);
+
+  const fuels: FuelPrice[] = [];
+  for (const line of text.split('\n')) {
+    if (!line.trimStart().startsWith('|')) continue;
+    const cells = line
+      .split('|')
+      .map((c) => c.trim())
+      .filter((c) => c.length > 0);
+    if (cells.length < 3) continue;
+    const name = cells[0].toLowerCase();
+    const meta = FUELS.find((f) => f.match(name));
+    if (!meta || fuels.some((f) => f.key === meta.key)) continue;
+    const previous = parsePrice(cells[1]);
+    const price = parsePrice(cells[2]);
+    if (previous == null || price == null || price <= 0) continue;
+    fuels.push({ key: meta.key, labelEn: meta.labelEn, labelUr: meta.labelUr, price, previous });
+  }
+
+  const premium = fuels.find((f) => f.key === 'premium');
+  const diesel = fuels.find((f) => f.key === 'diesel');
+  if (!premium || !diesel || premium.price < 100 || diesel.price < 100) {
+    throw new Error('petrol reader: could not parse a valid price table');
+  }
+  const effectiveFrom = parseEffectiveFrom(text.replace(/\s+/g, ' '));
+  if (!effectiveFrom) throw new Error('petrol reader: could not parse effective date');
+
+  return {
+    effectiveFrom,
+    fuels,
+    source: 'live',
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Both views are fetched in parallel and the one with the NEWER effective
+ * date wins — so a revision reaches the feed as soon as either path sees
+ * it, and one path failing (403, reader outage) never blocks the update.
+ * Throws only when both fail (keep-last-good upstream preserves the
+ * stored snapshot).
+ */
+export async function fetchPetrol(): Promise<PetrolSnapshot> {
+  const [direct, reader] = await Promise.allSettled([fetchDirect(), fetchViaReader()]);
+  const results = [direct, reader]
+    .filter((s): s is PromiseFulfilledResult<PetrolSnapshot> => s.status === 'fulfilled')
+    .map((s) => s.value);
+  if (results.length === 0) {
+    const why = [direct, reader]
+      .map((s) => (s.status === 'rejected' ? String((s.reason as Error)?.message ?? s.reason) : ''))
+      .filter(Boolean)
+      .join(' / ');
+    throw new Error(`petrol: both sources failed — ${why}`);
+  }
+  results.sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom));
+  return results[0];
 }
