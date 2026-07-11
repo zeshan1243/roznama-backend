@@ -13,7 +13,7 @@ import { fetchMarkets } from './markets.js';
 import { fetchWeather } from './weather.js';
 import { fetchPetrol, PetrolSnapshot } from './petrol.js';
 import { sendTopic, pushConfigured } from './push.js';
-import { fetchNss } from './nss.js';
+import { fetchNss, NssSnapshot } from './nss.js';
 import { recordUsdPkr } from './fxHistory.js';
 import { fetchNewsAll, fetchCricketAll } from './news.js';
 import { refreshAyahOfDay } from './ayah.js';
@@ -104,7 +104,45 @@ const FEEDS: Feed[] = [
       }
     },
   },
-  { key: 'nss', intervalMs: 6 * 60 * MIN, producer: fetchNss, accept: liveOnly },
+  {
+    key: 'nss',
+    intervalMs: 6 * 60 * MIN,
+    producer: fetchNss,
+    accept: liveOnly,
+    // Broadcast when any National Savings profit rate actually changes
+    // (opt-in 'nss' topic — see the app's NssPushNotifier).
+    onChange: async (prev, next) => {
+      const p = prev as NssSnapshot | null;
+      const n = next as NssSnapshot;
+      if (!p) return;
+      const before = new Map(p.products.map((r) => [r.code, r.profitPct]));
+      const changed = n.products.filter(
+        (r) => before.has(r.code) && before.get(r.code) !== r.profitPct,
+      );
+      if (changed.length === 0) return;
+      if (!pushConfigured()) {
+        lastErrors.set('push:nss', 'FCM_SERVICE_ACCOUNT not set — rate-change push skipped');
+        return;
+      }
+      const parts = changed
+        .slice(0, 3)
+        .map((r) => `${r.nameEn} ${r.profitPct}%`)
+        .join('  ·  ');
+      try {
+        await sendTopic('nss', {
+          title: 'National Savings rates updated',
+          body: parts + (changed.length > 3 ? ` · +${changed.length - 3} more` : ''),
+          data: { type: 'nss' },
+        });
+        lastErrors.delete('push:nss');
+        console.log('[ingest] nss rate change → pushed topic');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        lastErrors.set('push:nss', msg);
+        console.warn('[ingest] nss topic push failed:', msg);
+      }
+    },
+  },
   { key: 'news', intervalMs: 5 * MIN, producer: fetchNewsAll, accept: (d) => Array.isArray(d) && d.length > 0 },
   { key: 'cricket', intervalMs: 5 * MIN, producer: fetchCricketAll, accept: (d) => Array.isArray(d) && d.length > 0 },
   // Ayah of the day → app_content.ayah_today (idempotent per day; hourly check).
